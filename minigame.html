@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minigame Caro có âm thanh</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        #board { 
+            display: grid; 
+            grid-template-columns: repeat(3, 100px); 
+            gap: 5px; 
+            justify-content: center; 
+            margin: 20px auto; 
+        }
+        .cell {
+            width: 100px; height: 100px;
+            font-size: 3em; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
+            background-color: #f0f0f0; cursor: pointer; border-radius: 5px;
+        }
+        .cell:hover { background-color: #e0e0e0; }
+        #status { font-size: 1.5em; margin-bottom: 20px; font-weight: bold; }
+        button { padding: 10px 20px; font-size: 1em; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h1>Minigame Caro</h1>
+    
+    <!-- Nút Bật/Tắt âm thanh -->
+    <button id="soundToggle">🔊 Tắt âm thanh</button>
+    <button id="resetBtn">🔄 Chơi lại</button>
+
+    <div id="status">Lượt của X</div>
+    <div id="board"></div>
+
+    <!-- Các file âm thanh .mp3 -->
+    <audio id="sfx-move" src="move.mp3" preload="auto"></audio>
+    <audio id="sfx-win" src="win.mp3" preload="auto"></audio>
+    <audio id="sfx-draw" src="draw.mp3" preload="auto"></audio>
+
+    <script>
+        // 1. Quản lý âm thanh
+        let soundEnabled = true;
+        const sfxMove = document.querySelector("#sfx-move");
+        const sfxWin = document.querySelector("#sfx-win");
+        const sfxDraw = document.querySelector("#sfx-draw");
+        const soundToggle = document.getElementById("soundToggle");
+
+        soundToggle.addEventListener("click", () => {
+            soundEnabled = !soundEnabled;
+            soundToggle.textContent = soundEnabled ? "🔊 Tắt âm thanh" : "🔇 Bật âm thanh";
+        });
+
+        function playSound(audio) {
+            if (!soundEnabled || !audio) return;
+            audio.currentTime = 0; // Phát lại từ đầu nếu đánh nhanh
+            audio.play().catch(err => console.log("Cần tương tác để phát âm thanh:", err));
+        }
+
+        // 2. Logic game Caro (3x3 cơ bản)
+        const boardElement = document.getElementById("board");
+        const statusElement = document.getElementById("status");
+        let board = Array(9).fill(null);
+        let currentPlayer = "X";
+        let gameOver = false;
+
+        const winningCombinations = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Hàng ngang
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Hàng dọc
+            [0, 4, 8], [2, 4, 6]             // Chéo
+        ];
+
+        function checkWin() {
+            for (let combo of winningCombinations) {
+                const [a, b, c] = combo;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    return board[a];
+                }
+            }
+            return board.includes(null) ? null : "Draw";
+        }
+
+        function makeMove(index) {
+            if (board[index] || gameOver) return;
+
+            // Đánh cờ và phát âm thanh đánh cờ
+            board[index] = currentPlayer;
+            playSound(sfxMove);
+            renderBoard();
+
+            // Kiểm tra thắng/thua/hòa
+            const result = checkWin();
+            if (result) {
+                gameOver = true;
+                if (result === "Draw") {
+                    statusElement.textContent = "Hòa rồi!";
+                    playSound(sfxDraw); // Phát âm thanh hòa
+                } else {
+                    statusElement.textContent = `${result} chiến thắng!`;
+                    playSound(sfxWin); // Phát âm thanh thắng
+                }
+                return;
+            }
+
+            // Đổi lượt
+            currentPlayer = currentPlayer === "X" ? "O" : "X";
+            statusElement.textContent = `Lượt của ${currentPlayer}`;
+        }
+
+        function renderBoard() {
+            boardElement.innerHTML = "";
+            board.forEach((cell, index) => {
+                const div = document.createElement("div");
+                div.className = "cell";
+                div.textContent = cell || "";
+                div.addEventListener("click", () => makeMove(index));
+                boardElement.appendChild(div);
+            });
+        }
+
+        // Chơi lại
+        document.getElementById("resetBtn").addEventListener("click", () => {
+            board = Array(9).fill(null);
+            currentPlayer = "X";
+            gameOver = false;
+            statusElement.textContent = "Lượt của X";
+            renderBoard();
+        });
+
+        // Khởi tạo bàn cờ lần đầu
+        renderBoard();
+    </script>
+</body>
+</html>
